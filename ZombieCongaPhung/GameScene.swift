@@ -22,20 +22,7 @@ class GameScene: SKScene {
     let zombieMovePointsPerSec:CGFloat = 240.0 // khai báo vận tốc mỗi giây
     var velocity = CGPointZero
     
-    override init(size: CGSize) {
-        let maxAspectRatio:CGFloat = 16.0/9.0 // 1
-        let playableHeight = size.width / maxAspectRatio // 2
-        let playableMargin = (size.height-playableHeight)/2.0 // 3 
-        playableRect = CGRect(x: 0, y: playableMargin,
-        width: size.width,
-        height: playableHeight) // 4 
-        super.init(size: size) // 5
-    }
-    
-    required init(coder aDecoder: NSCoder) {
-            fatalError("init(coder:) has not been implemented") // 6
-    }
-    
+       
     override func didMoveToView(view: SKView) {
         backgroundColor = SKColor.whiteColor()//thiết lập nền trắng
         
