@@ -37,6 +37,16 @@ class GameScene: SKScene {
     
             fatalError("init(coder:) has not been implemented") // 6
     }
+    
+    func debugDrawPlayableArea() {
+        let shape = SKShapeNode()
+        let path = CGPathCreateMutable()
+        CGPathAddRect(path, nil, playableRect)
+        shape.path = path
+        shape.strokeColor = SKColor.redColor()
+        shape.lineWidth = 4.0
+        addChild(shape)
+    }
      
        
     override func didMoveToView(view: SKView) {
@@ -58,6 +68,8 @@ class GameScene: SKScene {
         zombie1.zPosition = 0 //background nên set -1 để khỏi che các node mặc định là 0
         //zombie1.setScale(2) // tăng kích thước lên 2 lần, xem thêm hàm setscale của SKnode
         addChild(zombie1)
+            
+        
         
         
         
@@ -66,6 +78,7 @@ class GameScene: SKScene {
         let zombie1Size = zombie1.size
         print("backgroundSize: \(backgroundSize)")
         print("zombie1Size: \(zombie1Size)")
+            debugDrawPlayableArea()
         
     }
     func sceneTouched(touchLocation:CGPoint) {
@@ -83,8 +96,11 @@ class GameScene: SKScene {
     }
     
     func boundsCheckZombie() {
-        let bottomLeft = CGPointZero
-        let topRight = CGPoint(x: size.width, y: size.height)
+        
+        let bottomLeft = CGPoint(x: 0,y: CGRectGetMinY(playableRect))
+        let topRight = CGPoint(x: size.width,y: CGRectGetMaxY(playableRect))
+        //let bottomLeft = CGPointZero
+        //let topRight = CGPoint(x: size.width, y: size.height)
         if zombie1.position.x <= bottomLeft.x {
         zombie1.position.x = bottomLeft.x
         velocity.x = -velocity.x
