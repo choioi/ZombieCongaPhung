@@ -4,7 +4,7 @@
 //
 //  Created by phung on 6/22/16.
 //  Copyright (c) 2016 phung. All rights reserved.
-//
+// 29/06 Update den doan xoay
 
 import SpriteKit
 
@@ -14,15 +14,15 @@ class GameScene: SKScene {
     
     
     
-    let zombie1 = SKSpriteNode(imageNamed: "zombie1")
+    let zombie = SKSpriteNode(imageNamed: "zombie1")
     let playableRect:CGRect
     //2 tham số để tính thời gian chạy 2 hàm update()
     var lastUpdateTime: NSTimeInterval = 0
-    var dt: NSTimeInterval = 0
+    var dt: NSTimeInterval = 0 // thời gian giữa các frame
     
-    //2 Tham số để khai báo khoảng cách đi được trong 1 khoảng thời gian của zombie1
+    //2 Tham số để khai báo khoảng cách đi được trong 1 khoảng thời gian của zombie
     let zombieMovePointsPerSec:CGFloat = 240.0 // khai báo vận tốc mỗi giây
-    var velocity = CGPointZero
+    var velocity = CGPointZero // xác định vận tốc và hướng di chuyển, ko có điểm kết thúc hoặc bắt đầu
     
     override init(size: CGSize) {
         let maxAspectRatio:CGFloat = 16.0/9.0 // 1
@@ -38,6 +38,8 @@ class GameScene: SKScene {
             fatalError("init(coder:) has not been implemented") // 6
     }
     
+    
+    //Ham nay ve khung playable cua zombie
     func debugDrawPlayableArea() {
         let shape = SKShapeNode()
         let path = CGPathCreateMutable()
@@ -60,14 +62,14 @@ class GameScene: SKScene {
         addChild(background)
         
         
-        //zombie1.SKSpriteNode(imageNamed: "zombie1")
+        //zombie.SKSpriteNode(imageNamed: "zombie")
         
-        zombie1.position = CGPoint(x: 400, y: 400)
-        zombie1.anchorPoint = CGPoint(x: 0.5, y: 0.5)// mặc định về ở tâm
-        zombie1.zRotation = 0*CGFloat(M_PI)/180 //xoay 0 độ
-        zombie1.zPosition = 0 //background nên set -1 để khỏi che các node mặc định là 0
-        //zombie1.setScale(2) // tăng kích thước lên 2 lần, xem thêm hàm setscale của SKnode
-        addChild(zombie1)
+        zombie.position = CGPoint(x: 400, y: 400)
+        zombie.anchorPoint = CGPoint(x: 0.5, y: 0.5)// mặc định về ở tâm
+        zombie.zRotation = 0*CGFloat(M_PI)/180 //xoay 0 độ
+        zombie.zPosition = 0 //background nên set -1 để khỏi che các node mặc định là 0
+        //zombie.setScale(2) // tăng kích thước lên 2 lần, xem thêm hàm setscale của SKnode
+        addChild(zombie)
             
         
         
@@ -75,12 +77,13 @@ class GameScene: SKScene {
         
         //Linh tinh
         let backgroundSize = background.size // Lấy size, width,height của 1 đối tượng
-        let zombie1Size = zombie1.size
+        let zombieSize = zombie.size
         print("backgroundSize: \(backgroundSize)")
-        print("zombie1Size: \(zombie1Size)")
+        print("zombieSize: \(zombieSize)")
             debugDrawPlayableArea()
         
     }
+    
     func sceneTouched(touchLocation:CGPoint) {
         moveZombieToward(touchLocation)
     }
@@ -90,31 +93,50 @@ class GameScene: SKScene {
         for touch in touches {
             let location = touch.locationInNode(self)
         
-        sceneTouched(location)
+        sceneTouched(location) // co the goi truc tiep hàm moveZombieToward(touch) luon
     }
     
     }
-    
+
     func boundsCheckZombie() {
         
-        let bottomLeft = CGPoint(x: 0,y: CGRectGetMinY(playableRect))
-        let topRight = CGPoint(x: size.width,y: CGRectGetMaxY(playableRect))
-        //let bottomLeft = CGPointZero
+        //1: vung di chuyen gioi han trong khung playableRect
+        let bottomLeft = CGPoint(x: 0,y: CGRectGetMinY(playableRect)) //Lay Min Y
+        let topRight = CGPoint(x: size.width,y: CGRectGetMaxY(playableRect)) //lay Max Y
+        
+        //2: Vung di chuyen phu hop voi man hinh thiet bi
+       // let bottomLeft = CGPointZero
         //let topRight = CGPoint(x: size.width, y: size.height)
-        if zombie1.position.x <= bottomLeft.x {
-        zombie1.position.x = bottomLeft.x
+        
+        
+        //Nếu vị trí x của zombie đi vượt quá cạnh trái màn hình, thì gán lại vị trí x cùa màn hình = vị trị cua zombie, chuyển hướng x của hướng di chuyển ngược lại, nghĩa là đụng tường dội lại
+        if zombie.position.x <= bottomLeft.x {
+        zombie.position.x = bottomLeft.x
         velocity.x = -velocity.x
         }
-        if zombie1.position.x >= topRight.x {
-        zombie1.position.x = topRight.x
+        
+        //Nếu vị trí x của zombie đi vượt quá cạnh phải, thì gán lai vị trí x của zombie bằng vị trí x của cạnh phải, đồng thời chuyển hướng di chuyển về phía ngược lại, nghĩa là đụng tường dội lại
+        if zombie.position.x >= topRight.x {
+        zombie.position.x = topRight.x
         velocity.x = -velocity.x }
-        if zombie1.position.y <= bottomLeft.y {
-            zombie1.position.y = bottomLeft.y
+        
+        //Nếu zombie đi xuống dưới và vượt quá cạnh dưới màn hình, thì gán lại vị trí y canh dưới cùa màn hình = vị trị y của  zombie, chuyển hướng y của hướng di chuyển ngược lại, nghĩa là đụng tường dội lại
+        if zombie.position.y <= bottomLeft.y {
+            zombie.position.y = bottomLeft.y
             velocity.y = -velocity.y
         }
-        if zombie1.position.y >= topRight.y {
-        zombie1.position.y = topRight.y
+        
+         //Nếu zombie đi lên trên và vượt quá cạnh trên màn hình, thì gán lại vị trí y canh trên cùa màn hình = vị trị y của  zombie, chuyển hướng y của hướng di chuyển ngược lại, nghĩa là đụng tường dội lại
+        if zombie.position.y >= topRight.y {
+        zombie.position.y = topRight.y
         velocity.y = -velocity.y }
+    }
+    
+    
+    //Hàm xoay mặt, truyền node cần xoay và hướng xoay
+    
+    func rotateSprite(sprite: SKSpriteNode, direction: CGPoint) {
+        sprite.zRotation = CGFloat(atan2(Double(direction.y), Double(direction.x)))
     }
    
     override func update(currentTime: CFTimeInterval) {
@@ -133,19 +155,23 @@ class GameScene: SKScene {
         } else {
             dt = 0}
         lastUpdateTime = currentTime
-        print("\(dt*1000) milliseconds since last update")
+        //print("\(dt*1000) milliseconds since last update")
 
-        //cách 1 : Cập nhật lại vị trí của zombie1 mỗi frame. cách cơ bản nhưng chuối
-        //zombie1.position = CGPoint(x: zombie1.position.x + 4, y: zombie1.position.y)
+        //cách 1 : Cập nhật lại vị trí của zombie mỗi frame. cách cơ bản nhưng chuối
+        //zombie.position = CGPoint(x: zombie.position.x + 4, y: zombie.position.y)
         
         
         //Cách 2 :
-        //moveSprite(zombie1,velocity: CGPoint(x: zombieMovePointsPerSec, y: 0))
+        //moveSprite(zombie,velocity: CGPoint(x: zombieMovePointsPerSec, y: 0))
         
         //cách 3 : di chuyển đến vị trí mình tap
-        moveSprite(zombie1, velocity: velocity)
-            boundsCheckZombie()
+        moveSprite(zombie, velocity: velocity)
+        boundsCheckZombie()
+        rotateSprite(zombie, direction: velocity)
+        
+        //print(velocity)
         }
+    
     
     func moveSprite(sprite: SKSpriteNode, velocity: CGPoint) {
             // 1
@@ -161,16 +187,21 @@ class GameScene: SKScene {
 
     func moveZombieToward(location: CGPoint) {
                 //offset : Độ lệch của x,y so với vị trí ban đầu
-                let offset = CGPoint(x: location.x - zombie1.position.x,
-                y: location.y - zombie1.position.y)
-                //lenght : Độ dài từ vị trí củ đến vị trí mới
+                let offset = CGPoint(x: location.x - zombie.position.x,
+                y: location.y - zombie.position.y)
+                //lenght : Độ dài từ vị trí củ đến vị trí mới, sẽ là cạnh huyền của 1 tam giác được tạo bởi điểm củ và điểm mới
                 let length = sqrt(
                 Double(offset.x * offset.x + offset.y * offset.y))
-                
+        
+                // xác định hướng di chuyển mỗi giây, tăng x hay trừ x, tăng y hay trừ y
                 let direction = CGPoint(x: offset.x / CGFloat(length), y: offset.y / CGFloat(length))
+        
+                //print("offset.x:\(offset.x),offset.y:\(offset.y) ,direction.x:\(direction.x),direction.y:\(direction.y), lenght: \(length)")
+        
+        
                 velocity = CGPoint(x: direction.x * zombieMovePointsPerSec, y: direction.y * zombieMovePointsPerSec)
-                
-                
+                print("velocity.x:\(velocity.x),velocity.y:\(velocity.y)")
+        
     }
     
     
