@@ -13,7 +13,7 @@ class GameScene: SKScene {
     
     
     
-   
+    
     let zombie = SKSpriteNode(imageNamed: "zombie1")
     let playableRect:CGRect
     //2 tham số để tính thời gian chạy 2 hàm update()
@@ -31,6 +31,7 @@ class GameScene: SKScene {
     //Challenge 3: Zombie xoay mặt mượt mà từ từ
     let zombieRotateRadiansPerSec:CGFloat = 4.0 * π
     
+    let zombieAnimation: SKAction
     
     override init(size: CGSize) {
         let maxAspectRatio:CGFloat = 16.0/9.0 // 1
@@ -39,7 +40,25 @@ class GameScene: SKScene {
         playableRect = CGRect(x: 0, y: playableMargin,
         width: size.width,
         height: playableHeight) // 4
+        
+        //tạo animation cho NODE 
+        // 1 : tạo mảng chứa các texture để animation trong mảng này
+        var textures = [SKTexture]() // 2 : Thêm textutres vào mảng 
+        for i in 1...4 {
+            textures.append(SKTexture(imageNamed: "zombie\(i)"))
+        }
+        // 3 This adds frames 3 and 2 to the list (remember, the textures array is 0 based). In total, the textures array now contains the frames in this order: 1, 2, 3, 4, 3, 2. The idea is you will loop this over and over for a continuous animation.
+        textures.append(textures[2])
+        textures.append(textures[1])
+        
+        // 4 Once you have the array of textures, running the animation is easy—you just create and run an action with animateWithTextures(timePerFrame:).
+        zombieAnimation = SKAction.repeatActionForever(SKAction.animateWithTextures(textures, timePerFrame: 0.1))
+        
+        
         super.init(size: size) // 5
+        
+        
+        
     }
     required init(coder aDecoder: NSCoder) {
     
@@ -80,23 +99,88 @@ class GameScene: SKScene {
         //zombie.yScale = 2
         //zombie.setScale(2) // tăng kích thước lên 2 lần, xem thêm hàm setscale của SKnode
         addChild(zombie)
-            
+        //Animation action
+        //Hàm này đi hoài dù zombie dùng, nên phải dùng hàm check nếu nó stop moving thì stop animation
+        //zombie.runAction(SKAction.repeatActionForever(zombieAnimation))
+        
+        //This runs the action wrapped in a repeat forever action. This will seamlessly cycle through the frames 1,2,3,4,3,2,1,2,3,4,3,2,1,2....
         
         
-        
-        
-        //Linh tinh
         let backgroundSize = background.size // Lấy size, width,height của 1 đối tượng
         let zombieSize = zombie.size
         print("backgroundSize: \(backgroundSize)")
         print("zombieSize: \(zombieSize)")
-            debugDrawPlayableArea()
+        debugDrawPlayableArea()
+        
+        //spawnEnemy() liên tục enemy, sau đó chờ 2s spawm tiếp, vì cứ mỗi con enemy trong action nó đã tốn 2s để đi hết đạon đường, nên chờ 2s để spawm tiếp con khác
+        //Note that you’re running the action on the scene itself. This works because the scene is a node, and any node can run actions.
+        //gọi hàm action trực tiếp trên scene có thể dùng self.runaction hoặc trực tiếp gọi Runaction như sau :
+        
+        //self.runAction(SKAction.repeatActionForever(SKAction.sequence([SKAction.runBlock(spawnEnemy),SKAction.waitForDuration(2.0)])))
+        
+        //hoặc
+        
+        //runAction(SKAction.repeatActionForever(SKAction.sequence([SKAction.runBlock(spawnEnemy),SKAction.waitForDuration(2.0)])))
+        //Tuy nhiên dòng trên thì zombie sẽ chạy hoài lien tục, dù cho con ziombie có đứng yên, nên ta phải gọi hàm startnamation va stop để nó tự biết khi nào nên stop
+        startZombieAnimation()
+        //spawm meo con
+        runAction(SKAction.repeatActionForever( SKAction.sequence([SKAction.runBlock(spawnCat),
+            SKAction.waitForDuration(1.0)])))
         
     }
     
+    //Stopping action : Bạn phải stop animation khi zombie đứng yên
+    //Trong Sprite Kit, khi bạn chạy 1 action , bạn có thể gán 1 cho anamition đó 1 key gọi là runAction(withKey:). Với cách này bạn có thể ngưng anammation với hàm removeActionForKey().
+    //Add 2 hàm này để giải quyết vấn đề này: startZombieAnimation và stopZombieAnimation
+    
+    func startZombieAnimation() {
+        if zombie.actionForKey("zombiebuocdi") == nil {
+        zombie.runAction(SKAction.repeatActionForever(zombieAnimation),withKey: "zombiebuocdi")
+        }
+    }
+    
+    func stopZombieAnimation() {
+        zombie.removeActionForKey("zombiebuocdi")
+    }
+    
+    
+    //Spawm meo
+    
+    func spawnCat() { // 1
+        let cat = SKSpriteNode(imageNamed: "cat")
+        cat.position = CGPoint(x: CGFloat.random(CGRectGetMinX(playableRect), max: CGRectGetMaxX(playableRect)),y: CGFloat.random(CGRectGetMinY(playableRect), max: CGRectGetMaxY(playableRect)))
+        cat.setScale(0)
+        addChild(cat)
+        // 2
+            cat.zRotation = -π / 16.0
+            let leftWiggle = SKAction.rotateByAngle(π/8.0, duration: 0.5)
+            let rightWiggle = leftWiggle.reversedAction()
+            let fullWiggle = SKAction.sequence([leftWiggle, rightWiggle])
+            let wiggleWait = SKAction.repeatAction(fullWiggle, count: 10) // chuỗi action cho con mèo quay tới quay lui, quay trái, quai phải, lặp lại 10 lần
+            
+        //Group action : Sử dụng multitask đa luồng : Đối với loại này đa nhiệm, bạn có thể sử dụng những gì được gọi là hành động nhóm. Nó hoạt động theo một cách tương tự như hành động sequen tuần tự, nơi bạn vượt action một danh sách các hành động. Tuy nhiên, thay vì chạy chúng cùng một thời gian lần lượt, một hành động nhóm chạy chúng cùng một lúc.
+            
+            let scaleUp = SKAction.scaleBy(1.2, duration: 0.25)
+            let scaleDown = scaleUp.reversedAction()
+            let fullScale = SKAction.sequence([scaleUp, scaleDown, scaleUp, scaleDown])
+            let group = SKAction.group([fullScale, fullWiggle])
+            let groupWait = SKAction.repeatAction(group, count: 10)
+        
+            
+            let appear = SKAction.scaleTo(1.0, duration: 0.5)
+        //let wait = SKAction.waitForDuration(10.0) // Thay thế wait ngồi yên bằng 1 chuỗi action quay tối quay lui
+        let disappear = SKAction.scaleTo(0, duration: 0.5)
+        let removeFromParent = SKAction.removeFromParent()
+     
+       // let actions = [appear, wiggleWait, disappear, removeFromParent] // Hãy nhìn những con mèo, đều giống nhau. quay giống nhau..Mình muốn nó random nên phải group nó multi chạy độc lập
+        let actions = [appear, groupWait, disappear, removeFromParent]
+        cat.runAction(SKAction.sequence(actions))
+    }
+    
+    
     func sceneTouched(touchLocation:CGPoint) {
         lastTouchLocation = touchLocation
-        moveZombieToward(touchLocation)
+         moveZombieToward(touchLocation)
     }
     
     override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
@@ -191,7 +275,8 @@ class GameScene: SKScene {
         boundsCheckZombie()
         rotateSprite(zombie, direction: velocity,rotateRadiansPerSec: zombieRotateRadiansPerSec)
         
-        distanceCheckZombie()
+        //distanceCheckZombie() // Hàm này nếu muôn zombie ngừng tại ví trí mình chạm
+        
         
         
 //        print("last touch\(lastTouchLocation),zombie:\(zombie.position)")
@@ -226,7 +311,8 @@ class GameScene: SKScene {
     }
 
     func moveZombieToward(location: CGPoint) {
-                //offset : Độ lệch của x,y so với vị trí ban đầu
+            startZombieAnimation()
+            //offset : Độ lệch của x,y so với vị trí ban đầu
                 //let offset = CGPoint(x: location.x - zombie.position.x,y: location.y - zombie.position.y)
                 let offset = location - zombie.position
         //
@@ -239,6 +325,8 @@ class GameScene: SKScene {
         
         
         //let direction = CGPoint(x: offset.x / CGFloat(length), y: offset.y / CGFloat(length))
+        //check thêm trong hàm MyUtils.swift
+        
         let direction = offset.normalized()
         
         //let direction = offset / length
@@ -263,21 +351,139 @@ class GameScene: SKScene {
         if distance > zombieMovePointsPerSec * CGFloat(dt) {
             // Nếu khoảng cách distance lớn hơn khoảng cách di chuyển được trong frame kế tiếp ( thời gian giữa 2 frame), 1 đoạn rất ngắn, tức là chưa đi đến nơi, ta cho zombie tiếp tục move!
             // Do hiện tại luôn có hàm moveSprite trong update nên nếu khoảng cách chưa đi đến ko cần thao tác gì cũng được, vì nó vẫn di chuyển, ở đây ta print để test thôi
-            print("chua di chuyen den vi tri da cham")
+                print("chua di chuyen den vi tri da cham")
                 //moveSprite(zombie, velocity: velocity)
                 //rotateSprite(zombie, direction: velocity, rotateRadiansPerSec: zombieRotateRadiansPerSec)
               } else {
             // ngược lại cho zombie đứng yên, tại vị trí của mình chạm, gia tốc = 0
                 zombie.position = lastTouchLocation
                 velocity = CGPointZero
+               // stopZombieAnimation()
             //rotateSprite(zombie, direction: velocity, rotateRadiansPerSec: zombieRotateRadiansPerSec)
-            print("da den noi")
-              //  stopZombieAnimation()
+                print("da den noi")
+                stopZombieAnimation()
               }
         
     }
     
-    
+    func spawnEnemy() {
+        
+        
+        let enemy = SKSpriteNode(imageNamed: "enemy")
+        //spawn enemy tai vi tri' o giua màn hình bên phải , y/2, x : sát góc
+        enemy.position = CGPoint(x: size.width + enemy.size.width/2, y: size.height/2)
+        //Spawn enemy random, ngay sát màn hình, vị trí y thì random trong khoảng chiều cao của playableRect .
+        
+        enemy.position = CGPoint(x: size.width + enemy.size.width/2, y: CGFloat.random(
+            CGRectGetMinY(playableRect) + enemy.size.height/2,
+            max: CGRectGetMaxY(playableRect) - enemy.size.height/2))
+        addChild(enemy)
+        
+        //let diemden_enemy = CGPoint(x: -enemy.size.width/2, y: enemy.position.y)
+        //let actionMove = SKAction.moveTo(diemden_enemy, duration: 2.0)
+        //enemy.runAction(actionMove)
+        //nếu ko cần dùng lại actionmove hoặc diemden_enemy ta có thể gộp chung dùng 1 dong code duy nhất
+        
+        // enemy.runAction(SKAction.moveTo(CGPoint(x: -enemy.size.width/2, y: enemy.position.y), duration: 2)) //0
+        
+        //Moveto : di chuyển đến 1 CGPOint có x,y cụ thể
+        //MovetoX,MovetoY : di chuyển thay đổi chỉ x hoặc chỉ y
+        //MovebyX,MovebyY : di chuyển THÊM 1 ĐOẠN NÀO ĐÓ 
+        //.waitForDuration : Wait 1 khoảng thời gian
+        
+        
+        // Di chuyển tuần tự 2 ation kế tiếp nhau, action này trước đến action khác
+        // 1
+//        let actionMidMove = SKAction.moveTo( CGPoint(x: size.width/2,
+//            y: CGRectGetMinY(playableRect) + enemy.size.height/2), duration: 5)
+        
+        //let actionMidMove = SKAction.moveByX( -size.width/2-enemy.size.width/2,
+            //y: -CGRectGetHeight(playableRect)/2 + enemy.size.height/2, duration: 1.0)
+        
+        
+        
+        // 2
+       //let actionMove1 = SKAction.moveTo(CGPoint(x: -enemy.size.width/2, y: enemy.position.y), duration:1.0)
+        
+        
+        
+        //let actionMove = SKAction.moveByX( -size.width/2-enemy.size.width/2,y: CGRectGetHeight(playableRect)/2 - enemy.size.height/2, duration: 1.0)
+        
+        // 3
+        //let sequence = SKAction.sequence([actionMidMove, actionMove])
+       
+        
+        //let wait = SKAction.waitForDuration(0.25) //4
+        
+        //let sequence = SKAction.sequence([actionMidMove, wait, actionMove])
+        
+        //Khai báo 1 biến là 1 block các hành động gì đó
+//        //let logMessage = SKAction.runBlock() {
+//            print("Reached bottom!")
+//        }
+        
+        //Khai báo action reverse chạy ngược về
+        
+        //let reverseMid = actionMidMove.reversedAction()
+        //let reverseMove = actionMove.reversedAction()
+        
+        
+        
+        //Chạy lần lượt các action move tới điểm V actionMidMove, action 1 block mã tuỳ ý ,  action wait.  action move
+        //sequence1 ko thể dịch ngược vì trong chuổi action có actionMove1 gọi hàm moveto, hàm này ko support reverse => sequence1 rever sẽ chạy lỗi lung tung :D
+        //let sequence1 = SKAction.sequence([actionMidMove, logMessage, wait, actionMove1])
+        
+        //Chay ngược về, sequence này có thê reverse vì ko có action nào phạm qui dịnh ko cho reverse
+        //let sequence2 = SKAction.sequence([actionMidMove, logMessage, wait, actionMove,reverseMove, logMessage, wait, reverseMid])
+        
+        
+//        let halfSequence = SKAction.sequence([actionMidMove, logMessage, wait, actionMove])
+//        let sequence3 = SKAction.sequence([halfSequence, halfSequence.reversedAction()]) // khai báo tiến trình ngược về
+        // Đoạn sequence3 này cho ta thấy rằng halfSequence này khi move tới điểm bot sẽ hiện message "Reached bottom!" sau đó mới wait, nhưng trên đường về, thì phải đợi wait xong mới show message..bởi vì hàm reverse() đảo ngược hoàn toàn theo trình tự ngược lại.
+        //This is because the reversed sequence is the exact opposite of the original, unlike how you wrote the first version. Later in this chapter, you’ll read about the group action, which you could use to fix this."
+        
+        //let dichnguoimoveto = SKAction.sequence([sequence1,sequence1.reversedAction()])
+        
+        
+        
+        
+        //Repeat action
+        //let chayhoai = SKAction.repeatActionForever(sequence3)
+       // enemy.runAction(sequence3)
+        //enemy.runAction(dichnguoimoveto) // chay loi.. trong sequen co action
+        
+        
+        
+        //Reversed actions : ko phải action nào cũng đảo ngược lại được, xem thêm trong class SKAction,
+        //Lưu ý quan trọng : 1 sequence cũng có thể đão ngược, với điều kiện sequence đó ko chứa action nào ko support reverse
+        //(This simply creates a sequence of actions that moves the sprite one way, and then reverses the sequence to go back the other way.)
+        // Lưu ý nếu đảo ngược 1 action, ko có hỗ trợ đảo ngược, thì nó sẽ chạy lại action đó
+        
+        
+        //Repeat action
+        
+        
+        //Hiện tại chỉ spawn enemy tại 1 ví trí , nên ta phải 
+        //Periodic spawning : Spawn định kỳ
+        
+        
+        let actionMove =
+        SKAction.moveToX(-enemy.size.width/2, duration: 2.0)
+        
+        
+        //Remove from parent action
+        
+        let actionRemove = SKAction.removeFromParent()
+        //enemy.runAction(actionMove)
+       
+        //Sao khi spawm xong run actionMove xong thi remove nó, chống tràn memory
+        enemy.runAction(SKAction.sequence([actionMove, actionRemove]))
+        
+        
+        
+
+        
+    }
     
     
     
